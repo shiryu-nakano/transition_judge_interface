@@ -12,6 +12,12 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(transition_recipe_test REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 #==========================================================
 # ライブラリターゲット
@@ -20,10 +26,19 @@ add_library(${PROJECT_NAME}_library
   src/transition_judge_interface_node.cpp
   src/transition_judge_interface_component.cpp
 )
+
 ament_target_dependencies(${PROJECT_NAME}_library
   rclcpp
   std_msgs
+  geometry_msgs
+  nav_msgs
+  sensor_msgs
+  visualization_msgs
+  tf2
+  tf2_geometry_msgs
 )
+
+
 # transition_recipe_test exports executables alongside libs, so
 # ament_target_dependencies(... transition_recipe_test) would try to link
 # imported executable targets and fail. Link only the C++ typesupport target.

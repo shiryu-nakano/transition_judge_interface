@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <string>
+#include "cmath"
 
 namespace transition_judge_interface
 {

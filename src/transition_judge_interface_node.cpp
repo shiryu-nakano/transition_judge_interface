@@ -1,5 +1,10 @@
 #include "transition_judge_interface/transition_judge_interface_node.hpp"
 
+#include <cmath>
+
+#include "tf2/utils.hpp"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+
 #include "transition_judge_interface/transition_judge_interface_component.hpp"
 
 namespace transition_judge_interface
@@ -29,6 +34,10 @@ TransitionJudgeInterfaceNode::TransitionJudgeInterfaceNode()
   pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
     "/pose", 10,
     std::bind(&TransitionJudgeInterfaceNode::poseCallback, this, std::placeholders::_1));
+  
+  time_span_sub_ = this->create_subscription<std_msgs::msg::Float64>(
+    "/state_timespan_sec", 10,
+    std::bind(&TransitionJudgeInterfaceNode::timeSpanCallback, this, std::placeholders::_1));
 
   // timer
   timer_ = this->create_wall_timer(
@@ -90,8 +99,10 @@ void TransitionJudgeInterfaceNode::scanCallback(const sensor_msgs::msg::LaserSca
       float r = msg->ranges[i];
       if (std::isfinite(r) && (r >= msg->range_min && r <= msg->range_max))
       {
-          double ox = r * std::cos(angle) + x_[0];
-          double oy = r * std::sin(angle)+ x_[1];
+          // obstacle_ はロボット中心座標系（base_link）で保持する。
+          // Judge は「ロボットから見た角度・距離」で判定するため世界座標系への変換は不要。
+          double ox = r * std::cos(angle);
+          double oy = r * std::sin(angle);
           obstacle_.push_back({ox, oy});
       }
       angle += msg->angle_increment;
@@ -126,17 +137,5 @@ void TransitionJudgeInterfaceNode::localObstacleCallback(const visualization_msg
 void TransitionJudgeInterfaceNode::currentStateIdCallback(const std_msgs::msg::String::SharedPtr msg)
 {
   current_state_id_ = msg->data;
-/*
-  const auto decision = TransitionJudge::Judge(current_state_id_);
-  if (!decision.has_value()) {
-    return;
-  }
-
-  transition_recipe_test::msg::TransitionRequest out;
-  out.from_state_id = decision->from_state_id;
-  out.target_state_id = decision->target_state_id;
-  transition_request_pub_->publish(out);
 }
-*/
-
 }  // namespace transition_judge_interface
