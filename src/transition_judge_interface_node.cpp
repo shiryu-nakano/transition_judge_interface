@@ -55,9 +55,23 @@ TransitionJudgeInterfaceNode::TransitionJudgeInterfaceNode()
 // ----- Callback methods -----
 void TransitionJudgeInterfaceNode::timerCallback()
 {
-  // Timer callback implementation
-  const std::optional<TransitionDecision> decision = TransitionJudge::Judge(current_state_id_);
+  // Node が保持している最新の状態を TransitionInput に詰めて Judge に渡す。
+  TransitionInput in;
+  in.current_state_id = current_state_id_;
+  in.x = x_;
+  in.time_span = time_span_[0];
+  in.obstacles = obstacle_;
+
+  const std::optional<TransitionDecision> decision = TransitionJudge::Judge(in);
   if (!decision.has_value()) {
+    return;
+  }
+
+  // edge 検出: 直近 publish した内容と一致する場合は同じ要求の連投を避けるため skip する。
+  if (last_published_request_.has_value() &&
+      last_published_request_->from_state_id == decision->from_state_id &&
+      last_published_request_->target_state_id == decision->target_state_id)
+  {
     return;
   }
 
@@ -65,6 +79,14 @@ void TransitionJudgeInterfaceNode::timerCallback()
   out.from_state_id = decision->from_state_id;
   out.target_state_id = decision->target_state_id;
   transition_request_pub_->publish(out);
+
+  last_published_request_ = decision;
+
+  RCLCPP_INFO(
+    this->get_logger(),
+    "Published TransitionRequest: %s -> %s",
+    decision->from_state_id.c_str(),
+    decision->target_state_id.c_str());
 }
 
 

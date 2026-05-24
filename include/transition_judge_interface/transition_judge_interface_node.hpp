@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -14,6 +15,7 @@
 #include "sensor_msgs/msg/laser_scan.hpp"
 
 #include "transition_recipe_test/msg/transition_request.hpp"
+#include "transition_judge_interface/transition_judge_interface_component.hpp"
 
 
 namespace transition_judge_interface
@@ -62,6 +64,11 @@ private:
   std::array<double, 1> time_span_{{0.0}};
   std::vector<std::array<double, 2>> obstacle_;
   bool received_obstacles_{false};
+
+  // 直近で publish した TransitionRequest。edge 検出に使用し、同一内容の連投を抑制する。
+  // current_state_id が変わって from_state_id が変わったり、target_state_id が変わったタイミングで
+  // 改めて publish される。
+  std::optional<TransitionDecision> last_published_request_;
 };
 
 }  // namespace transition_judge_interface

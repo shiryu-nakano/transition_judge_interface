@@ -3,8 +3,7 @@
 namespace transition_judge_interface
 {
 
-std::optional<TransitionDecision> TransitionJudge::Judge(
-  const std::string & /*current_state_id*/)
+std::optional<TransitionDecision> TransitionJudge::Judge(const TransitionInput & /*in*/)
 {
   return std::nullopt;
 }
