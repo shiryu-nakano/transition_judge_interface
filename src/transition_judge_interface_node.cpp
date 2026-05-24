@@ -8,7 +8,7 @@ namespace transition_judge_interface
 TransitionJudgeInterfaceNode::TransitionJudgeInterfaceNode()
 : rclcpp::Node("transition_judge_interface")
 {
-  current_state_id_sub_ = this->create_subscription<std_msgs::msg::String>("/current_state_id", 10,　std::bind(&TransitionJudgeInterfaceNode::currentStateIdCallback, this, std::placeholders::_1));
+  current_state_id_sub_ = this->create_subscription<std_msgs::msg::String>("/current_state_id", 10, std::bind(&TransitionJudgeInterfaceNode::currentStateIdCallback, this, std::placeholders::_1));
 
 
   transition_request_pub_ = this->create_publisher<transition_recipe_test::msg::TransitionRequest>("/transition_request", 10);
