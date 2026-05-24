@@ -20,6 +20,8 @@ public:
   // 遷移不要なら std::nullopt を返す。
   static std::optional<TransitionDecision> Judge(
     const std::string & current_state_id);
+  
+  // 関数のオーバーロードが必要かもしれない→　引数が変化する可能性があるため
 };
 
 }  // namespace transition_judge_interface
