@@ -14,19 +14,19 @@ namespace transition_judge_interface
 struct TransitionInput
 {
   // 現在の状態 ID（state graph のノード ID）。
-  std::string current_state_id;
+  std::optional<std::string> current_state_id;
 
   // ロボットの状態量（world frame）。
   // x[0] = x [m], x[1] = y [m], x[2] = yaw [rad],
   // x[3] = v [m/s], x[4] = omega [rad/s].
-  std::array<double, 5> x{{0.0, 0.0, 0.0, 0.0, 0.0}};
+  std::optional<std::array<double, 5>> x;
 
   // 現在の状態に滞在し続けている経過時間 [s]。
-  double time_span{0.0};
+  std::optional<double> time_span{0.0};
 
   // 検知された障害物群（base_link 座標系）。
   // 各要素 obstacles[i] = {x, y}（ロボット正面が +x、左が +y）。
-  std::vector<std::array<double, 2>> obstacles;
+  std::optional<std::vector<std::array<double, 2>>> obstacles;
 };
 
 struct TransitionDecision
