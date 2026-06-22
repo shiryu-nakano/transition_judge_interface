@@ -63,6 +63,11 @@ private:
   std::array<double, 5> x_{{0.0, 0.0, 0.0, 0.0, 0.0}};
   std::array<double, 1> time_span_{{0.0}};
   std::vector<std::array<double, 2>> obstacle_;
+
+  // 各 subscription が一度でも受信したかを保持する。false の間は TransitionInput に詰めない。
+  bool received_state_id_{false};
+  bool received_x_{false};
+  bool received_time_span_{false};
   bool received_obstacles_{false};
 
   // 直近で publish した TransitionRequest。edge 検出に使用し、同一内容の連投を抑制する。

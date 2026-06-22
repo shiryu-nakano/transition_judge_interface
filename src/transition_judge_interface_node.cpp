@@ -56,11 +56,12 @@ TransitionJudgeInterfaceNode::TransitionJudgeInterfaceNode()
 void TransitionJudgeInterfaceNode::timerCallback()
 {
   // Node が保持している最新の状態を TransitionInput に詰めて Judge に渡す。
+  // 受信フラグが立っていないフィールドは詰めない（std::nullopt のまま）。
   TransitionInput in;
-  in.current_state_id = current_state_id_;
-  in.x = x_;
-  in.time_span = time_span_[0];
-  in.obstacles = obstacle_;
+  if (received_state_id_)  { in.current_state_id = current_state_id_; }
+  if (received_x_)         { in.x                = x_; }
+  if (received_time_span_) { in.time_span        = time_span_[0]; }
+  if (received_obstacles_) { in.obstacles        = obstacle_; }
 
   const std::optional<TransitionDecision> decision = TransitionJudge::Judge(in);
   if (!decision.has_value()) {
@@ -98,6 +99,7 @@ void TransitionJudgeInterfaceNode::odomCallback(const nav_msgs::msg::Odometry::S
   x_[2] = tf2::getYaw(msg->pose.pose.orientation);
   x_[3] = msg->twist.twist.linear.x;
   x_[4] = msg->twist.twist.angular.z;
+  received_x_ = true;
 }
 
 
@@ -108,6 +110,7 @@ void TransitionJudgeInterfaceNode::poseCallback(const geometry_msgs::msg::PoseSt
   x_[1] = msg->pose.position.y;
   x_[2] = tf2::getYaw(msg->pose.orientation);
   // these can be extracted from odom message
+  received_x_ = true;
 }
 
 
@@ -130,9 +133,9 @@ void TransitionJudgeInterfaceNode::scanCallback(const sensor_msgs::msg::LaserSca
       angle += msg->angle_increment;
   }
 
-  if (!obstacle_.empty()) {
-    received_obstacles_ = true;
-  }
+  // scan message を受信した時点で「障害物データを受信した」とみなす。
+  // 障害物が検知されていない（obstacle_ が空）状態と未受信を区別するため、空でも true にする。
+  received_obstacles_ = true;
 }
 
 
@@ -140,24 +143,42 @@ void TransitionJudgeInterfaceNode::timeSpanCallback(const std_msgs::msg::Float64
 {
   // Time span callback implementation
   time_span_[0] = msg->data;
+  received_time_span_ = true;
 }
 
 
 void TransitionJudgeInterfaceNode::localObstacleCallback(const visualization_msgs::msg::MarkerArray::SharedPtr msg)
 {
-  // Local obstacle callback implementation
+  // global_obstacle_markers は map (world) 座標系で publish されてくる。
+  // Judge はロボット中心座標系（base_link）で角度・距離判定するため、ここで world → robot 変換を行う。
+  // 変換にはロボットの (x, y, yaw) が必要なので、odom/pose が一度も来ていない状態では
+  // 変換できない → obstacle_ を更新せず、受信フラグも立てない。
+  if (!received_x_) {
+    return;
+  }
+
+  const double rx = x_[0];
+  const double ry = x_[1];
+  const double cos_yaw = std::cos(x_[2]);
+  const double sin_yaw = std::sin(x_[2]);
+
   obstacle_.clear();
   for (const auto & marker : msg->markers) {
-    obstacle_.push_back({marker.pose.position.x, marker.pose.position.y});
+    const double dx = marker.pose.position.x - rx;
+    const double dy = marker.pose.position.y - ry;
+    // 並進: ロボット位置を原点に
+    // 回転: ロボットの yaw 分だけ逆回転して robot frame に揃える
+    const double bx =  cos_yaw * dx + sin_yaw * dy;
+    const double by = -sin_yaw * dx + cos_yaw * dy;
+    obstacle_.push_back({bx, by});
   }
-  if (!obstacle_.empty()) {
-    received_obstacles_ = true;
-  }
+  received_obstacles_ = true;
 }
 
 
 void TransitionJudgeInterfaceNode::currentStateIdCallback(const std_msgs::msg::String::SharedPtr msg)
 {
   current_state_id_ = msg->data;
+  received_state_id_ = true;
 }
 }  // namespace transition_judge_interface
