@@ -33,7 +33,7 @@ std::optional<TransitionDecision> TransitionJudge::Judge(const TransitionInput &
     if (input.obstacles.has_value()) {
       
       constexpr double kFrontHalfAngleRad = M_PI / 12.0;  // ±30deg
-      constexpr double kDistThreshM = 2.0;
+      constexpr double kDistThreshM = 1.0;
 
       for (const auto & o : input.obstacles.value()) {
         const double angle = std::atan2(o[1], o[0]);
