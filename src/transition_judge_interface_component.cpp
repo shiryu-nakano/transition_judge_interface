@@ -5,7 +5,8 @@
 namespace transition_judge_interface
 {
 
-std::optional<TransitionDecision> TransitionJudge::Judge(const TransitionInput & input)
+std::optional<TransitionDecision> TransitionJudge::Judge(
+  const TransitionInput & input, const TransitionJudgeParams & params)
 {
 
   // current stateがnullの場合は判定しない
@@ -28,13 +29,12 @@ std::optional<TransitionDecision> TransitionJudge::Judge(const TransitionInput &
 
 
   // current == pure_pursuit_nodeの場合→dwaに遷移する条件を書く
-  // 前方 ±30deg、距離 3m 以内に障害物が 1 つでもあれば dwa_node へ遷移する。
+  // 前方 ±pp_to_dwa_half_angle_deg、距離 pp_to_dwa_dist_m 以内に障害物が 1 つでもあれば dwa_node へ遷移する。
   if (input.current_state_id.value() == "pure_pursuit_planner") {
     if (input.obstacles.has_value()) {
       
-      constexpr double kFrontHalfAngleRad = M_PI / 6.0;  // ±30度（60度）など、現在調整中
-      constexpr double kDistThreshM = 2.0; // 障害物の距離閾値　
-      // TODO 今後これらはconfigとして読み込み可能なようにする
+      const double kFrontHalfAngleRad = params.pp_to_dwa_half_angle_deg * M_PI / 180.0;
+      const double kDistThreshM = params.pp_to_dwa_dist_m;
 
       for (const auto & o : input.obstacles.value()) {
         const double angle = std::atan2(o[1], o[0]);
@@ -56,16 +56,15 @@ std::optional<TransitionDecision> TransitionJudge::Judge(const TransitionInput &
     */
 
   // current == dwa_nodeの場合→ppに遷移する条件を書く
-  // dwa に滞在し続けて 7 秒以上経過しており、かつ前方 ±30deg / 3m 以内に障害物が無ければ
+  // dwa に min_dwa_duration_sec 以上滞在しており、かつ前方 ±dwa_to_pp_half_angle_deg / dwa_to_pp_dist_m 以内に障害物が無ければ
   // pure_pursuit_node に戻す。境界近辺での pp↔dwa 振動を抑えるための時間ヒステリシス。
   
   if (input.current_state_id.value() == "dwa_planner") {
-    // 経過時間が無いと「7 秒以上滞在した」ことを判定できないため遷移しない。
+    // 経過時間が無いと「min_dwa_duration_sec 以上滞在した」ことを判定できないため遷移しない。
     if (!input.time_span.has_value()) {
       return std::nullopt;
     }
-    constexpr double kMinDwaDurationSec = 7.0;
-    if (input.time_span.value() < kMinDwaDurationSec) {
+    if (input.time_span.value() < params.min_dwa_duration_sec) {
       return std::nullopt;
     }
 
@@ -74,9 +73,9 @@ std::optional<TransitionDecision> TransitionJudge::Judge(const TransitionInput &
     //  return std::nullopt;
     //}
 
-    constexpr double kFrontHalfAngleRad = M_PI / 6.0;  // ±30deg
-    // pp -> dwa の閾値（2.0m）より短いと、その間に障害物がある場合 pp <-> dwa を往復するため揃える
-    constexpr double kDistThreshM = 2.0;
+    const double kFrontHalfAngleRad = params.dwa_to_pp_half_angle_deg * M_PI / 180.0;
+    // pp_to_dwa_dist_m より短いと、その間に障害物がある場合 pp <-> dwa を往復するので揃えるか長くする
+    const double kDistThreshM = params.dwa_to_pp_dist_m;
 
     for (const auto & o : input.obstacles.value()) {
       const double angle = std::atan2(o[1], o[0]);

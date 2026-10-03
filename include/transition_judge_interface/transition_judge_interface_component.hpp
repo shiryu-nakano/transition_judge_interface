@@ -29,6 +29,22 @@ struct TransitionInput
   std::optional<std::vector<std::array<double, 2>>> obstacles;
 };
 
+// 判定の閾値。Node 側で config/params.yaml（ROS パラメータ）から読み込んで渡す。
+// 既定値は yaml が無い場合（シミュレーション launch など）に使われる。
+struct TransitionJudgeParams
+{
+  // pp -> dwa: 前方 ±pp_to_dwa_half_angle_deg、距離 pp_to_dwa_dist_m 以内に障害物があれば dwa へ
+  double pp_to_dwa_dist_m{2.0};
+  double pp_to_dwa_half_angle_deg{30.0};
+
+  // dwa -> pp: dwa に min_dwa_duration_sec 以上滞在し、
+  // 前方 ±dwa_to_pp_half_angle_deg、距離 dwa_to_pp_dist_m 以内が空いていれば pp へ。
+  // dwa_to_pp_dist_m を pp_to_dwa_dist_m より短くすると、その間に障害物がある場合 pp <-> dwa を往復する。
+  double dwa_to_pp_dist_m{2.0};
+  double dwa_to_pp_half_angle_deg{30.0};
+  double min_dwa_duration_sec{7.0};
+};
+
 struct TransitionDecision
 {
   std::string from_state_id;
@@ -45,7 +61,8 @@ class TransitionJudge
 {
 public:
   // 統合判定。遷移不要なら std::nullopt を返す。
-  static std::optional<TransitionDecision> Judge(const TransitionInput & in);
+  static std::optional<TransitionDecision> Judge(
+    const TransitionInput & in, const TransitionJudgeParams & params = TransitionJudgeParams{});
 };
 
 }  // namespace transition_judge_interface

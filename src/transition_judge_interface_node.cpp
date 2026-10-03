@@ -13,6 +13,26 @@ namespace transition_judge_interface
 TransitionJudgeInterfaceNode::TransitionJudgeInterfaceNode()
 : rclcpp::Node("transition_judge_interface")
 {
+  // 判定の閾値（config/params.yaml）。既定値は TransitionJudgeParams のもの
+  const TransitionJudgeParams defaults;
+  this->declare_parameter<double>("pp_to_dwa_dist_m", defaults.pp_to_dwa_dist_m);
+  this->declare_parameter<double>("pp_to_dwa_half_angle_deg", defaults.pp_to_dwa_half_angle_deg);
+  this->declare_parameter<double>("dwa_to_pp_dist_m", defaults.dwa_to_pp_dist_m);
+  this->declare_parameter<double>("dwa_to_pp_half_angle_deg", defaults.dwa_to_pp_half_angle_deg);
+  this->declare_parameter<double>("min_dwa_duration_sec", defaults.min_dwa_duration_sec);
+
+  const TransitionJudgeParams p = loadJudgeParams();
+  RCLCPP_INFO(
+    this->get_logger(),
+    "Judge params: pp->dwa %.2fm / ±%.1fdeg, dwa->pp %.2fm / ±%.1fdeg after %.1fs",
+    p.pp_to_dwa_dist_m, p.pp_to_dwa_half_angle_deg,
+    p.dwa_to_pp_dist_m, p.dwa_to_pp_half_angle_deg, p.min_dwa_duration_sec);
+  if (p.dwa_to_pp_dist_m < p.pp_to_dwa_dist_m) {
+    RCLCPP_WARN(
+      this->get_logger(),
+      "dwa_to_pp_dist_m (%.2f) < pp_to_dwa_dist_m (%.2f): pp <-> dwa may oscillate",
+      p.dwa_to_pp_dist_m, p.pp_to_dwa_dist_m);
+  }
 
   // subscriber
   current_state_id_sub_ = this->create_subscription<std_msgs::msg::String>(
@@ -63,7 +83,7 @@ void TransitionJudgeInterfaceNode::timerCallback()
   if (received_time_span_) { in.time_span        = time_span_[0]; }
   if (received_obstacles_) { in.obstacles        = obstacle_; }
 
-  const std::optional<TransitionDecision> decision = TransitionJudge::Judge(in);
+  const std::optional<TransitionDecision> decision = TransitionJudge::Judge(in, loadJudgeParams());
   if (!decision.has_value()) {
     return;
   }
@@ -88,6 +108,18 @@ void TransitionJudgeInterfaceNode::timerCallback()
     "Published TransitionRequest: %s -> %s",
     decision->from_state_id.c_str(),
     decision->target_state_id.c_str());
+}
+
+
+TransitionJudgeParams TransitionJudgeInterfaceNode::loadJudgeParams()
+{
+  TransitionJudgeParams p;
+  p.pp_to_dwa_dist_m = this->get_parameter("pp_to_dwa_dist_m").as_double();
+  p.pp_to_dwa_half_angle_deg = this->get_parameter("pp_to_dwa_half_angle_deg").as_double();
+  p.dwa_to_pp_dist_m = this->get_parameter("dwa_to_pp_dist_m").as_double();
+  p.dwa_to_pp_half_angle_deg = this->get_parameter("dwa_to_pp_half_angle_deg").as_double();
+  p.min_dwa_duration_sec = this->get_parameter("min_dwa_duration_sec").as_double();
+  return p;
 }
 
 

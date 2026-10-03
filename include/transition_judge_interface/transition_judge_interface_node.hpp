@@ -37,6 +37,9 @@ private:
   void poseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
   void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg); // odom info can be extracted from pose info
 
+  // config/params.yaml の閾値を読む。毎周期呼ぶので ros2 param set でも実行中に反映される。
+  TransitionJudgeParams loadJudgeParams();
+
   // Subscriber
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr current_state_id_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
