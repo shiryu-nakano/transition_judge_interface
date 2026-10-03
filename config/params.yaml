@@ -2,14 +2,14 @@ transition_judge_interface:
   ros__parameters:
     # ===== pp -> dwa =====
     # 前方 ±pp_to_dwa_half_angle_deg、距離 pp_to_dwa_dist_m 以内に障害物があれば dwa へ切り替える
-    pp_to_dwa_dist_m: 2.0
+    pp_to_dwa_dist_m: 0.5
     pp_to_dwa_half_angle_deg: 30.0
 
     # ===== dwa -> pp =====
     # dwa に min_dwa_duration_sec 以上滞在し、かつ
     # 前方 ±dwa_to_pp_half_angle_deg、距離 dwa_to_pp_dist_m 以内が空いていれば pp へ戻す
     # dwa_to_pp_dist_m は pp_to_dwa_dist_m 以上にする（短いと pp <-> dwa を往復する）
-    dwa_to_pp_dist_m: 2.0
+    dwa_to_pp_dist_m: 0.5
     dwa_to_pp_half_angle_deg: 30.0
     min_dwa_duration_sec: 7.0
 
