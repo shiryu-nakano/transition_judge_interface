@@ -57,12 +57,21 @@ target_include_directories(${PROJECT_NAME}_library PUBLIC
 add_executable(${PROJECT_NAME} src/transition_judge_interface.cpp)
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_library)
 
+# pure_pursuit_planner のみの構成用（ALL_UNCONFIGURED -> ALL_CONFIGURED -> pure_pursuit_planner だけ）
+add_executable(transition_judge_pp_only src/transition_judge_pp_only.cpp)
+ament_target_dependencies(transition_judge_pp_only rclcpp std_msgs)
+target_link_libraries(transition_judge_pp_only
+  transition_recipe_test::transition_recipe_test__rosidl_typesupport_cpp
+  transition_recipe_test::transition_recipe_test__rosidl_generator_cpp
+)
+
 #==========================================================
 # インストール
 #==========================================================
 install(TARGETS
   ${PROJECT_NAME}
   ${PROJECT_NAME}_library
+  transition_judge_pp_only
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
